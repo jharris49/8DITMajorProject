@@ -10,13 +10,18 @@ import CoreData
 
 struct TabNavigator: View {
     @State var selectedTab = 1
+    @State var stopScan = false
     var homeViewTabs: some View {
         TabView(selection: $selectedTab) {
-            ScanView(selectedTab: $selectedTab)
+            ScanView(selectedTab: $selectedTab, stopScan: $stopScan)
                 .tabItem{
                     Label("Scan", systemImage: "camera")
                 }
                 .tag(1)
+                .sheet(isPresented: $stopScan){
+                    Text("Placeholder")
+                        .presentationDetents([.medium]) 
+                }
             CatalogView(selectedTab: $selectedTab)
                 .tabItem{
                     Label("Contents", systemImage: "takeoutbag.and.cup.and.straw")
