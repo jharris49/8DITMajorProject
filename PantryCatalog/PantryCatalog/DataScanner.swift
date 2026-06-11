@@ -35,8 +35,8 @@ struct ScanView: UIViewControllerRepresentable {
         context: Context
     ) {
         // Checks if stop scan is true or false.
-        if stopScan {
-            //stops scanning.
+        if stopScan || selectedTab != 1 {
+            //stops scanning if bool is true or the tab is not the camera.
                uiViewController.stopScanning()
            } else {
                //starts scanning.

@@ -9,6 +9,7 @@ import SwiftUI
 import CoreData
 
 struct TabNavigator: View {
+    @Environment(\.managedObjectContext) private var viewContext
     @State var selectedTab = 1
     @State var stopScan = false
     @State var scanCounter = 0
@@ -22,6 +23,9 @@ struct TabNavigator: View {
                     Label("Scan", systemImage: "camera")
                 }
                 .tag(1)
+                .onAppear {
+                        stopScan = false
+                    }
                 // on change of scan counter, change stop scan to true, opening the sheet below.
                 .onChange(of: scanCounter) {
                         stopScan = true
@@ -45,6 +49,13 @@ struct TabNavigator: View {
                                        selection: $expDate,
                                        displayedComponents: [.date])
                             Button("Save Product"){
+                                addNewProduct(
+                                    productName: item.product_name ?? "",
+                                    brand: item.brands ?? "",
+                                    expirationDate: expDate,
+                                    imageURL: item.image_front_url ?? "",
+                                    viewContext: viewContext
+                                )
                             }
                         } else {
                             Text("Your product could not be found in our database")
