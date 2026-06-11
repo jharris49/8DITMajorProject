@@ -11,6 +11,8 @@ import VisionKit
 struct ScanView: UIViewControllerRepresentable {
     @Binding var selectedTab: Int
     @Binding var stopScan: Bool
+    @Binding var scanCounter: Int
+    @Binding var productData: SpecificProduct?
     
     // Creates data scanner view controller object.
     var scannerViewController: DataScannerViewController = DataScannerViewController(
@@ -70,9 +72,10 @@ struct ScanView: UIViewControllerRepresentable {
                     // try and except essentially
                     do {
                         // tries to get a product with barcode, if an error it moves to catch
-                        let product = try await getSpecificProduct(barcode: decodedBarcode)
-                        print(product ?? "Nothing returned")
-                        parent.stopScan = true
+                        let returnedProduct = try await getSpecificProduct(barcode: decodedBarcode)
+                        print(returnedProduct ?? "Nothing returned")
+                        parent.productData = returnedProduct
+                        parent.scanCounter += 1
                         dataScanner.stopScanning()
                     } catch {
                         print("Error")

@@ -11,7 +11,7 @@ struct ProductResponse: Decodable {
     let product: SpecificProduct?
 }
 
-    // creates a struct that contains and converts the JSON objects contained within the parent JSON product objects and fields.
+// creates a struct that contains and converts the JSON objects contained within the parent JSON product objects and fields.
 struct SpecificProduct: Decodable {
     let product_name: String?
     let brands: String?
