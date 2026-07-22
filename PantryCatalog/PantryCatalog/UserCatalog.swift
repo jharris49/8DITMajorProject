@@ -6,8 +6,24 @@
 //
 import SwiftUI
 
+struct AddContainerToolbar: ToolbarContent {
+    @Binding var showAddContainerSheet: Bool
+    var body: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarTrailing){
+            Button {
+                showAddContainerSheet = true
+            } label: {
+                Image(systemName: "plus.capsule.fill")
+            }
+        }
+    }
+}
+
 struct CatalogView: View{
+    @State var showAddContainerSheet = false
+    @State var newContainerName = ""
     @Binding var selectedTab: Int
+    @Environment(\.managedObjectContext) private var viewContext
     @FetchRequest(
         sortDescriptors: [
             SortDescriptor(\.productName, order: .forward),
@@ -37,7 +53,23 @@ struct CatalogView: View{
                 NavigationLink(destination: NoContainer()){
                     Text("Items with no specified container")
                 }
-            }.navigationTitle("Catalog")
+            }
+            .navigationTitle("Catalog")
+            .toolbar{AddContainerToolbar(showAddContainerSheet: $showAddContainerSheet)}
+            .sheet(isPresented: $showAddContainerSheet){
+                Form {
+                    HStack {
+                        Text("Container Name:")
+                        TextField("Enter the name of your container:", text: $newContainerName, prompt: Text("        Pantry etc"))
+                    }
+                    Button("Add container"){
+                        addContainer(containerName: newContainerName, viewContext: viewContext)
+                        showAddContainerSheet = false
+                    }
+                }
+                // sheet size medium.
+                .presentationDetents([.medium])
+            }
         }
     }
 }
