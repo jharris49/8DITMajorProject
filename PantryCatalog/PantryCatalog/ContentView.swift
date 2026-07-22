@@ -18,6 +18,7 @@ struct TabNavigator: View {
     @State var stopScan = false
     @State var scanCounter = 0
     @State var expDate = Date()
+    @State var showItemConformation = false
     @State var productData: SpecificProduct?
 
     @FetchRequest(
@@ -74,19 +75,28 @@ struct TabNavigator: View {
                                 }
                             }
                             Button("Save Product"){
-                                addNewProduct(
-                                    productName: item.product_name ?? "",
-                                    brand: item.brands ?? "",
-                                    expirationDate: expDate,
-                                    imageURL: item.image_front_url ?? "",
-                                    pantryContainer: selectedContainer,
-                                    viewContext: viewContext
-                                )
+                                showItemConformation = true
+                            }
+                            .alert("Are you sure you want to save this item?", isPresented: $showItemConformation){
+                                Button("No", role: .cancel){}
+                                Button("Yes") {
+                                    addNewProduct(
+                                        productName: item.product_name ?? "",
+                                        brand: item.brands ?? "",
+                                        expirationDate: expDate,
+                                        imageURL: item.image_front_url ?? "",
+                                        pantryContainer: selectedContainer,
+                                        viewContext: viewContext
+                                    )
+                                    stopScan = false
+                                }
+                                .keyboardShortcut(.defaultAction)
                             }
                         } else {
                             Text("Your product could not be found in our database")
                         }
                     }
+                    // sheet size medium.
                     .presentationDetents([.medium])
                 }
             CatalogView(selectedTab: $selectedTab)

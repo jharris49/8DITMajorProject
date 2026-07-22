@@ -34,12 +34,43 @@ struct CatalogView: View{
                         Text(container.containerName ?? "Unnamed Container")
                     }
                 }
+                NavigationLink(destination: NoContainer()){
+                    Text("Items with no specified container")
+                }
+            }.navigationTitle("Catalog")
+        }
+    }
+}
+
+struct NoContainer: View {
+    @FetchRequest(
+            sortDescriptors: [
+                SortDescriptor(\.productName, order: .forward),
+                SortDescriptor(\.expirationDate, order: .forward)
+            ],
+            predicate: NSPredicate(format: "container == nil")
+        ) var nilContainers: FetchedResults<UserItem>
+    
+    var body: some View {
+        List{
+            // checks if there are no items, if true then this message is displayed.
+            if nilContainers.isEmpty{
+                Text("All items are in containers")
+            // else, each item is outputted.
+            } else {
+                ForEach(nilContainers) {item in
+                    VStack{
+                        Text(item.productName ?? "Name wasn't found")
+                        Text(item.brand ?? "Brand wasn't found")
+                        Text(item.expirationDate?.formatted(date: .abbreviated, time: .omitted) ?? "Date wasn't found")
+                        Text(item.container?.containerName ?? "No container found")
+                    }
+                }
             }
             
         }
     }
 }
-
 
 
 struct SpecificContainer: View {
