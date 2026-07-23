@@ -57,18 +57,21 @@ struct CatalogView: View{
             .navigationTitle("Catalog")
             .toolbar{AddContainerToolbar(showAddContainerSheet: $showAddContainerSheet)}
             .sheet(isPresented: $showAddContainerSheet){
-                Form {
-                    HStack {
-                        Text("Container Name:")
-                        TextField("Enter the name of your container:", text: $newContainerName, prompt: Text("        Pantry etc"))
+                NavigationStack {
+                    Form {
+                        HStack {
+                            Text("Container Name:")
+                            TextField("Enter the name of your container:", text: $newContainerName, prompt: Text("        Pantry etc"))
+                        }
+                        Button("Add container"){
+                            addContainer(containerName: newContainerName, viewContext: viewContext)
+                            showAddContainerSheet = false
+                        }
+                        .navigationTitle("New Container")
                     }
-                    Button("Add container"){
-                        addContainer(containerName: newContainerName, viewContext: viewContext)
-                        showAddContainerSheet = false
-                    }
+                    // sheet size medium.
+                    .presentationDetents([.medium])
                 }
-                // sheet size medium.
-                .presentationDetents([.medium])
             }
         }
     }

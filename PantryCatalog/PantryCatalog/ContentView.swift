@@ -8,7 +8,35 @@
 import SwiftUI
 import CoreData
 
+struct ScanViewToolbar: ToolbarContent {
+    var body: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            NavigationLink(destination: ManualProductView()){
+                Image(systemName: "questionmark")
+            }
+        }
+    }
+}
 
+
+struct FooterContentView: View {
+    @Binding var showManualProductView: Bool
+    var body: some View {
+        VStack(alignment: .center, spacing: 6) {
+            Text("Can't find your product?")
+            Button {
+                showManualProductView.toggle()
+            } label: {
+                Text("click here to add it manually")
+            }
+            .foregroundStyle(.blue)
+            Text("or")
+            Link("click here to add it to the database", destination: URL(string: "https://world.openfoodfacts.org/how-to-add-a-product")!)
+        }
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity)
+    }
+}
 
 struct TabNavigator: View {
     @State var defaultContainers = ["Pantry", "Fridge", "Freezer"]
@@ -21,6 +49,8 @@ struct TabNavigator: View {
     @State var showItemConformation = false
     @State var productData: SpecificProduct?
 
+    @State var showManualProductView = false
+
     @FetchRequest(
         sortDescriptors: [
             SortDescriptor(\.containerName, order: .forward),
@@ -32,7 +62,10 @@ struct TabNavigator: View {
     
     var homeViewTabs: some View {
         TabView(selection: $selectedTab) {
-            ScanView(selectedTab: $selectedTab, stopScan: $stopScan, scanCounter: $scanCounter, productData: $productData)
+            NavigationStack {
+                ScanView(selectedTab: $selectedTab, stopScan: $stopScan, scanCounter: $scanCounter, productData: $productData)
+                    .toolbar{ScanViewToolbar()}
+            }
                 .tabItem{
                     Label("Scan", systemImage: "camera")
                 }
@@ -50,54 +83,69 @@ struct TabNavigator: View {
                 .sheet(isPresented: $stopScan, onDismiss: {
                     productData = nil
                 }){
-                    Form {
-                        if let item = productData {
-                            Text(item.product_name ?? "")
-                            // shows image through the use of an
-                            // external url
-                            AsyncImage(url: URL( string: item.image_front_url ?? "")){ image in image
-                                    .image?.resizable()
-                                    .scaledToFit()
-                            }
-                            DatePicker("Expiration Date",
-                                       selection: $expDate,
-                                       displayedComponents: [.date])
-                            // container picker. uses the containers returned from
-                            // the database fetchrequest and outputs them as
-                            // options for the user to choose to add their itme to
-                            Picker("Location", selection: $selectedContainer){
-                                Text("Not Specified").tag(nil as Containers?)
-                                // for each container returned in the database
-                                // it ouptuts the name as part of the picker
-                                ForEach(databaseContainers){ container in
-                                    Text(container.containerName ?? "Error")
-                                        .tag(container as Containers?)
+                    NavigationStack {
+                        Form {
+                            if let item = productData {
+                                Text(item.product_name ?? "")
+                                // shows image through the use of an
+                                // external url
+                                AsyncImage(url: URL( string: item.image_front_url ?? "")){ image in image
+                                        .image?.resizable()
+                                        .scaledToFit()
                                 }
-                            }
-                            Button("Save Product"){
-                                showItemConformation = true
-                            }
-                            .alert("Are you sure you want to save this item?", isPresented: $showItemConformation){
-                                Button("No", role: .cancel){}
-                                Button("Yes") {
-                                    addNewProduct(
-                                        productName: item.product_name ?? "",
-                                        brand: item.brands ?? "",
-                                        expirationDate: expDate,
-                                        imageURL: item.image_front_url ?? "",
-                                        pantryContainer: selectedContainer,
-                                        viewContext: viewContext
-                                    )
-                                    stopScan = false
+                                DatePicker("Expiration Date",
+                                           selection: $expDate,
+                                           displayedComponents: [.date])
+                                // container picker. uses the containers returned from
+                                // the database fetchrequest and outputs them as
+                                // options for the user to choose to add their itme to
+                                Picker("Location", selection: $selectedContainer){
+                                    Text("Not Specified").tag(nil as Containers?)
+                                    // for each container returned in the database
+                                    // it ouptuts the name as part of the picker
+                                    ForEach(databaseContainers){ container in
+                                        Text(container.containerName ?? "Error")
+                                            .tag(container as Containers?)
+                                    }
                                 }
-                                .keyboardShortcut(.defaultAction)
+                                Button("Save Product"){
+                                    showItemConformation = true
+                                }
+                                .alert("Are you sure you want to save this item?", isPresented: $showItemConformation){
+                                    Button("No", role: .cancel){}
+                                    Button("Yes") {
+                                        addNewProduct(
+                                            productName: item.product_name ?? "",
+                                            brand: item.brands ?? "",
+                                            expirationDate: expDate,
+                                            imageURL: item.image_front_url ?? "",
+                                            pantryContainer: selectedContainer,
+                                            viewContext: viewContext
+                                        )
+                                        stopScan = false
+                                    }
+                                    .keyboardShortcut(.defaultAction)
+                                }
+                                Section{
+                                } footer: {
+                                    FooterContentView(showManualProductView: $showManualProductView)
+                                }
+                            } else {
+                                    Text("Your product could not be found in our database")
+                                    Section {
+                                    } footer: {
+                                        FooterContentView(showManualProductView: $showManualProductView)
+                                    }
                             }
-                        } else {
-                            Text("Your product could not be found in our database")
                         }
+                        // sheet size medium.
+                        .presentationDetents([.medium])
+                        .navigationTitle("Scanned Item")
+                        .navigationDestination(isPresented: $showManualProductView) {
+                            ManualProductView()
+                        }
+                        .navigationBarTitleDisplayMode(.inline)
                     }
-                    // sheet size medium.
-                    .presentationDetents([.medium])
                 }
             CatalogView(selectedTab: $selectedTab)
                 .tabItem{
@@ -138,6 +186,16 @@ struct TabNavigator: View {
         }
     }
 }
+
+struct ManualProductView: View {
+    var body: some View {
+        NavigationStack{
+            Text("Placeholder")
+        }
+        .navigationTitle("Manual Product Entry")
+    }
+}
+
 
 #Preview {
     TabNavigator().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
