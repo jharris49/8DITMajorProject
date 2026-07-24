@@ -10,10 +10,13 @@ import CoreData
 
 struct ScanViewToolbar: ToolbarContent {
     var body: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
+        ToolbarItem(placement: .principal) {
             NavigationLink(destination: ManualProductView()){
-                Image(systemName: "questionmark")
+                Text("Can't find your product? Add it manually.")
+                    .font(.footnote)
+                    .foregroundStyle(.blue)
             }
+            .buttonStyle(.plain)
         }
     }
 }
@@ -46,7 +49,7 @@ struct TabNavigator: View {
     @State var stopScan = false
     @State var scanCounter = 0
     @State var expDate = Date()
-    @State var showItemConformation = false
+    @State var showItemConfirmation = false
     @State var productData: SpecificProduct?
 
     @State var showManualProductView = false
@@ -64,6 +67,7 @@ struct TabNavigator: View {
         TabView(selection: $selectedTab) {
             NavigationStack {
                 ScanView(selectedTab: $selectedTab, stopScan: $stopScan, scanCounter: $scanCounter, productData: $productData)
+                    .navigationBarTitleDisplayMode(.inline)
                     .toolbar{ScanViewToolbar()}
             }
                 .tabItem{
@@ -109,9 +113,9 @@ struct TabNavigator: View {
                                     }
                                 }
                                 Button("Save Product"){
-                                    showItemConformation = true
+                                    showItemConfirmation = true
                                 }
-                                .alert("Are you sure you want to save this item?", isPresented: $showItemConformation){
+                                .alert("Are you sure you want to save this item?", isPresented: $showItemConfirmation){
                                     Button("No", role: .cancel){}
                                     Button("Yes") {
                                         addNewProduct(
@@ -161,7 +165,7 @@ struct TabNavigator: View {
         // referring back to the @appstorage var
         if isFirstTimeOpened {
             Form {
-                Text("Welcome to Larder!")
+                Text("Welcome to (placeholder name)!")
                     .font(.title)
                     .bold()
                 
@@ -188,11 +192,68 @@ struct TabNavigator: View {
 }
 
 struct ManualProductView: View {
+    @State var newName = ""
+    @State var manualItemDate = Date()
+    @State var showManualItemConfirmation = false
+    @State var manualBrand = ""
+    @Environment(\.managedObjectContext) private var viewContext
+    
+    @FetchRequest(
+        sortDescriptors: [
+            SortDescriptor(\.containerName, order: .forward),
+        ]
+        
+    ) var databaseContainers: FetchedResults<Containers>
+    
+    @State private var selectedContainer: Containers?
+    
     var body: some View {
         NavigationStack{
-            Text("Placeholder")
+            Form {
+                VStack{
+                    HStack {
+                        Text("Item Name:")
+                        TextField("name", text: $newName)
+                    }
+                    HStack {
+                        Text("Item Brand:")
+                        TextField("brand", text: $manualBrand)
+                    }
+                    DatePicker("Expiration Date",
+                               selection: $manualItemDate,
+                               displayedComponents: [.date])
+                    // container picker. uses the containers returned from
+                    // the database fetchrequest and outputs them as
+                    // options for the user to choose to add their itme to
+                    Picker("Location", selection: $selectedContainer){
+                        Text("Not Specified").tag(nil as Containers?)
+                        // for each container returned in the database
+                        // it ouptuts the name as part of the picker
+                        ForEach(databaseContainers){ container in
+                            Text(container.containerName ?? "Error")
+                                .tag(container as Containers?)
+                        }
+                    }
+                }
+                Button("Save Product"){
+                    showManualItemConfirmation = true
+                }
+                .alert("Are you sure you want to save this item?", isPresented: $showManualItemConfirmation){
+                    Button("No", role: .cancel){}
+                    Button("Yes") {
+                        addNewProduct(
+                            productName: newName,
+                            brand: manualBrand,
+                            expirationDate: manualItemDate,
+                            pantryContainer: selectedContainer,
+                            viewContext: viewContext
+                        )
+                    }
+                    .keyboardShortcut(.defaultAction)
+                }
+            }
+            .navigationTitle("Manual Product Entry")
         }
-        .navigationTitle("Manual Product Entry")
     }
 }
 
