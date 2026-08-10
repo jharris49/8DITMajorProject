@@ -50,6 +50,7 @@ struct TabNavigator: View {
     @State var scanCounter = 0
     @State var expDate = Date()
     @State var showItemConfirmation = false
+    @State var showScanSheet = false
     @State var productData: SpecificProduct?
 
     @State var showManualProductView = false
@@ -69,23 +70,29 @@ struct TabNavigator: View {
                 ScanView(selectedTab: $selectedTab, stopScan: $stopScan, scanCounter: $scanCounter, productData: $productData)
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar{ScanViewToolbar()}
+                    .onDisappear{
+                        stopScan = true
+                    }
+                    .onAppear {
+                        stopScan = false
+                    }
             }
                 .tabItem{
                     Label("Scan", systemImage: "camera")
                 }
                 .tag(1)
-                .onAppear {
-                    stopScan = false
-                }
             // on change of scan counter, change stop scan to true, opening the sheet below.
                 .onChange(of: scanCounter) {
                     stopScan = true
+                    showScanSheet = true
                 }
             // sheet presents data from scanned content if
             // something was returned, else it says tells the
             // user it is not in the database.
-                .sheet(isPresented: $stopScan, onDismiss: {
+                .sheet(isPresented: $showScanSheet, onDismiss: {
                     productData = nil
+                    stopScan = false
+                    showManualProductView = false
                 }){
                     NavigationStack {
                         Form {
@@ -126,6 +133,7 @@ struct TabNavigator: View {
                                             pantryContainer: selectedContainer,
                                             viewContext: viewContext
                                         )
+                                        showScanSheet = false
                                         stopScan = false
                                     }
                                     .keyboardShortcut(.defaultAction)
@@ -192,6 +200,7 @@ struct TabNavigator: View {
 }
 
 struct ManualProductView: View {
+    @State var showInvalidInput = false
     @State var newName = ""
     @State var manualItemDate = Date()
     @State var showManualItemConfirmation = false
@@ -214,10 +223,12 @@ struct ManualProductView: View {
                     HStack {
                         Text("Item Name:")
                         TextField("name", text: $newName)
+                            .onChange(of: newName) { _, _ in newName = String(newName.prefix(200))}
                     }
                     HStack {
                         Text("Item Brand:")
                         TextField("brand", text: $manualBrand)
+                            .onChange(of: manualBrand) { _, _ in manualBrand = String(manualBrand.prefix(400))}
                     }
                     DatePicker("Expiration Date",
                                selection: $manualItemDate,
@@ -236,7 +247,15 @@ struct ManualProductView: View {
                     }
                 }
                 Button("Save Product"){
-                    showManualItemConfirmation = true
+                    if newName.isEmpty {
+                        showInvalidInput.toggle()
+                    } else {
+                        showManualItemConfirmation = true
+                    }
+                }
+                .alert("You entered a blank name, please ensure you enter a name for your product.", isPresented: $showInvalidInput) {
+                    Button("Retry"){}
+                        .keyboardShortcut(.defaultAction)
                 }
                 .alert("Are you sure you want to save this item?", isPresented: $showManualItemConfirmation){
                     Button("No", role: .cancel){}

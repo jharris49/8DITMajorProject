@@ -22,6 +22,7 @@ struct AddContainerToolbar: ToolbarContent {
 struct CatalogView: View{
     @State var showAddContainerSheet = false
     @State var newContainerName = ""
+    @State var invalidContainerName = false
     @Binding var selectedTab: Int
     @Environment(\.managedObjectContext) private var viewContext
     @FetchRequest(
@@ -62,10 +63,18 @@ struct CatalogView: View{
                         HStack {
                             Text("Container Name:")
                             TextField("Enter the name of your container:", text: $newContainerName, prompt: Text("        Pantry etc"))
+                                .onChange(of: newContainerName) { _, _ in newContainerName = String(newContainerName.prefix(400))}
                         }
                         Button("Add container"){
+                            if newContainerName.isEmpty {
+                                invalidContainerName.toggle()
+                            }
                             addContainer(containerName: newContainerName, viewContext: viewContext)
                             showAddContainerSheet = false
+                        }
+                        .alert("You entered an empty container, please make sure your container has a name.", isPresented: $invalidContainerName){
+                            Button("Retry"){}
+                                .keyboardShortcut(.defaultAction)
                         }
                         .navigationTitle("New Container")
                     }
