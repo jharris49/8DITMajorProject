@@ -103,11 +103,16 @@ struct NoContainer: View {
             // else, each item is outputted.
             } else {
                 ForEach(nilContainers) {item in
-                    VStack{
-                        Text(item.productName ?? "Name wasn't found")
-                        Text(item.brand ?? "Brand wasn't found")
-                        Text(item.expirationDate?.formatted(date: .abbreviated, time: .omitted) ?? "Date wasn't found")
-                        Text(item.container?.containerName ?? "No container found")
+                        VStack{
+                            NavigationLink(destination: ItemClickThrough(clickedItem: item, savedExpirationDate: item.expirationDate ?? Date())){
+                                Text(item.productName ?? "Name wasn't found")
+                                    .font(.title2)
+                                Spacer()
+                                AsyncImage(url: URL( string: item.imageURL ?? "")){ image in image
+                                        .image?.resizable()
+                                        .scaledToFit()
+                                }
+                            }
                     }
                 }
             }
@@ -133,14 +138,32 @@ struct SpecificContainer: View {
             } else {
                 ForEach(sortedItems) {item in
                     VStack{
-                        Text(item.productName ?? "Name wasn't found")
-                        Text(item.brand ?? "Brand wasn't found")
-                        Text(item.expirationDate?.formatted(date: .abbreviated, time: .omitted) ?? "Date wasn't found")
-                        Text(item.container?.containerName ?? "No container found")
+                        NavigationLink(destination: ItemClickThrough(clickedItem: item, savedExpirationDate: item.expirationDate ?? Date())){
+                            Text(item.productName ?? "Name wasn't found")
+                            AsyncImage(url: URL( string: item.imageURL ?? "")){ image in image
+                                    .image?.resizable()
+                                    .scaledToFit()
+                            }
+                        }
                     }
                 }
             }
             
+        }
+    }
+}
+
+struct ItemClickThrough: View {
+    @ObservedObject var clickedItem: UserItem
+    @State var savedExpirationDate: Date
+    @Environment(\.managedObjectContext) private var viewContext
+    var body: some View {
+        Text(clickedItem.brand ?? "Brand wasn't found")
+        DatePicker("Current Expiration Date",
+                   selection: $savedExpirationDate,
+                   displayedComponents: [.date])
+        .onChange(of: savedExpirationDate) {
+            updateExpirationDate(currentProduct: clickedItem, newExpirationDate: savedExpirationDate, viewContext: viewContext)
         }
     }
 }

@@ -38,3 +38,13 @@ func addNewProduct(productName: String, brand: String? = nil, expirationDate: Da
         print("Error saving: \(error)")
     }
 }
+
+func updateExpirationDate(currentProduct: UserItem, newExpirationDate: Date, viewContext: NSManagedObjectContext){
+    currentProduct.expirationDate = newExpirationDate
+    do {
+        // saves to core data.
+        try viewContext.save()
+    } catch {
+        print("Error saving: \(error)")
+    }
+}
