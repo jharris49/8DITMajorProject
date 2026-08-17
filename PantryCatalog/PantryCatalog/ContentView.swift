@@ -131,6 +131,7 @@ struct TabNavigator: View {
                                             expirationDate: expDate,
                                             imageURL: item.image_front_url ?? "",
                                             pantryContainer: selectedContainer,
+                                            nutriments: item.nutriments ?? nil,
                                             viewContext: viewContext
                                         )
                                         showScanSheet = false

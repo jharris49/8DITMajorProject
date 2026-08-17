@@ -159,6 +159,13 @@ struct ItemClickThrough: View {
     @Environment(\.managedObjectContext) private var viewContext
     var body: some View {
         Text(clickedItem.brand ?? "Brand wasn't found")
+        Text(clickedItem.productCalories > 0 ? "Calories: \(clickedItem.productCalories) kcal":"No calorie data found")
+        Text(clickedItem.protein > 0 ? "Protein: \(clickedItem.protein, specifier: "%.1f") g": "No protein data found")
+        Text(clickedItem.carbs > 0 ? "Carbs: \(clickedItem.carbs, specifier: "%.1f") g": "No carb data found")
+        Text(clickedItem.fat > 0 ? "Fat: \(clickedItem.fat, specifier: "%.1f") g": "No fat data found")
+        Text(clickedItem.sugar > 0 ?"Sugar: \(clickedItem.sugar, specifier: "%.1f") g": "No sugar data found")
+        
+        
         DatePicker("Current Expiration Date",
                    selection: $savedExpirationDate,
                    displayedComponents: [.date])

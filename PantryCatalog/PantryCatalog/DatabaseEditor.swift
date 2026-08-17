@@ -22,7 +22,7 @@ func addContainer(containerName: String, viewContext: NSManagedObjectContext){
 }
 
 func addNewProduct(productName: String, brand: String? = nil, expirationDate: Date,
-                   imageURL: String? = nil, pantryContainer: Containers?, viewContext: NSManagedObjectContext) {
+                   imageURL: String? = nil, pantryContainer: Containers?, nutriments: Nutriments? = nil, viewContext: NSManagedObjectContext) {
     // creates new user item object.
     let newProduct = UserItem(context: viewContext)
     // sets the attributes of the new user item object to the passed in variables (name, brand, etc).
@@ -31,6 +31,14 @@ func addNewProduct(productName: String, brand: String? = nil, expirationDate: Da
     newProduct.expirationDate = expirationDate
     newProduct.imageURL = imageURL
     newProduct.container = pantryContainer
+    
+    if let nutriments = nutriments {
+        newProduct.productCalories = nutriments.energy_kcal_100g ?? 0.0
+        newProduct.protein = nutriments.proteins_100g ?? 0.0
+        newProduct.carbs = nutriments.carbohydrates_100g ?? 0.0
+        newProduct.fat = nutriments.fat_100g ?? 0.0
+        newProduct.sugar = nutriments.sugars_100g ?? 0.0
+    }
     do {
         // saves to core data.
         try viewContext.save()

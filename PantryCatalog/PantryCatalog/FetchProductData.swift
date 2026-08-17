@@ -17,6 +17,17 @@ struct SpecificProduct: Decodable {
     let brands: String?
     let image_front_url: String?
     let quantity: String?
+    let nutriments: Nutriments?
+}
+
+struct Nutriments: Decodable {
+    let energy_kcal_100g: Double?
+    let carbohydrates_100g: Double?
+    let sugars_100g: Double?
+    let fat_100g: Double?
+    let proteins_100g: Double?
+    let fiber_100g: Double?
+    let sodium_100g: Double?
 }
 
 // gets barcode and does a get request for the Open Food Facts database.
