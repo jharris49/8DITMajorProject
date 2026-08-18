@@ -5,6 +5,7 @@
 //  Created by Josh Harris on 10/06/2026.
 //
 import SwiftUI
+import CoreData
 
 struct AddContainerToolbar: ToolbarContent {
     @Binding var showAddContainerSheet: Bool
@@ -124,6 +125,7 @@ struct NoContainer: View {
 
 struct SpecificContainer: View {
     @ObservedObject var container: Containers
+    @Environment(\.managedObjectContext) private var viewContext
     var body: some View {
         // gets all items from a container and converts them to type UserItem object.
         let items = container.items?.allObjects as? [UserItem] ?? []
@@ -147,16 +149,35 @@ struct SpecificContainer: View {
                         }
                     }
                 }
+                .onDelete{selectedIndexes in
+                    deleteIndexedItem(at: selectedIndexes, from: sortedItems, using: viewContext)
+                }
             }
             
+        }
+        .toolbar{
+            EditButton()
+        }
+    }
+    func deleteIndexedItem(at indexes: IndexSet, from items: [UserItem], using viewContext: NSManagedObjectContext) {
+        for index in indexes{
+            viewContext.delete(items[index])
+        }
+        do {
+            // saves to core data.
+            try viewContext.save()
+        } catch {
+            print("Error deleting: \(error)")
         }
     }
 }
 
 struct ItemClickThrough: View {
+    @State var itemDeletionAlert = false
     @ObservedObject var clickedItem: UserItem
     @State var savedExpirationDate: Date
     @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.dismiss) private var dismiss
     var body: some View {
         Text(clickedItem.brand ?? "Brand wasn't found")
         Text(clickedItem.productCalories > 0 ? "Calories: \(clickedItem.productCalories) kcal":"No calorie data found")
@@ -171,6 +192,20 @@ struct ItemClickThrough: View {
                    displayedComponents: [.date])
         .onChange(of: savedExpirationDate) {
             updateExpirationDate(currentProduct: clickedItem, newExpirationDate: savedExpirationDate, viewContext: viewContext)
+        }
+        
+        Button {
+            itemDeletionAlert.toggle()
+        } label: {
+            Text("Delete")
+                .foregroundStyle(Color.red)
+        }
+        .alert("Are you sure you want to delete \(clickedItem.productName ?? "None")?", isPresented: $itemDeletionAlert) {
+            Button("No", role: .cancel){}
+            Button("Yes", role:.destructive){
+                deleteItem(selectedItem: clickedItem, viewContext: viewContext)
+                dismiss()
+            }
         }
     }
 }

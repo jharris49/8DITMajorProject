@@ -56,3 +56,13 @@ func updateExpirationDate(currentProduct: UserItem, newExpirationDate: Date, vie
         print("Error saving: \(error)")
     }
 }
+
+func deleteItem(selectedItem: UserItem, viewContext: NSManagedObjectContext) {
+    viewContext.delete(selectedItem)
+    do {
+        // saves to core data.
+        try viewContext.save()
+    } catch {
+        print("Error deleting: \(error)")
+    }
+}
