@@ -47,21 +47,29 @@ struct CatalogView: View{
     var body: some View{
         NavigationStack{
             Form{
-                // for each container returned from core data  a navigation link is created.
-                ForEach(databaseContainers) {container in
-                    // created clickable link/button to a the container view which holds the
-                    // user items saved to that specific container.
-                    NavigationLink(destination: SpecificContainer(container: container)){
-                        Text(container.containerName ?? "Unnamed Container")
+                Section("Containers") {
+                    // for each container returned from core data  a navigation link is created.
+                    ForEach(databaseContainers) {container in
+                        // created clickable link/button to a the container view which holds the
+                        // user items saved to that specific container.
+                        NavigationLink(destination: SpecificContainer(container: container)){
+                            Text(container.containerName ?? "Unnamed Container")
+                        }
+                    }
+                    .onDelete{selectedIndexes in
+                        deleteContainer(indexes: selectedIndexes, containers: databaseContainers, viewContext: viewContext)
+                    }
+                    NavigationLink(destination: NoContainer()){
+                        Text("Items with no specified container")
                     }
                 }
-                .onDelete{selectedIndexes in
-                    deleteContainer(indexes: selectedIndexes, containers: databaseContainers, viewContext: viewContext)
-                }
-                NavigationLink(destination: NoContainer()){
-                    Text("Items with no specified container")
+                Section("Other"){
+                    NavigationLink(destination: ExpiredFoodView()){
+                        Text("Expired food")
+                    }
                 }
             }
+            // screen title
             .navigationTitle("Catalog")
             .toolbar{AddContainerToolbar(showAddContainerSheet: $showAddContainerSheet)}
             .sheet(isPresented: $showAddContainerSheet){
@@ -83,6 +91,7 @@ struct CatalogView: View{
                             Button("Retry"){}
                                 .keyboardShortcut(.defaultAction)
                         }
+                        // screen title
                         .navigationTitle("New Container")
                     }
                     // sheet size medium.
@@ -104,6 +113,69 @@ struct CatalogView: View{
         }
     }
 }
+
+struct ExpiredFoodView: View {
+    @FetchRequest(
+        sortDescriptors: [
+            SortDescriptor(\.expirationDate, order: .reverse)
+        ],
+        predicate: NSPredicate(format: "expirationDate < %@", Calendar.current.startOfDay(for: Date()) as CVarArg)
+    ) var expiredFoods: FetchedResults<UserItem>
+    
+    @Environment(\.managedObjectContext) private var viewContext
+    
+    var body: some View {
+        List{
+            // checks if there are no items, if true then this message is displayed.
+            if expiredFoods.isEmpty{
+                Text("You have no expired food")
+                // else, each item is outputted.
+            } else {
+                Section {
+                    ForEach(expiredFoods) {expiredItem in
+                        VStack{
+                            NavigationLink(destination: ItemClickThrough(clickedItem: expiredItem, savedExpirationDate: expiredItem.expirationDate ?? Date())){
+                                Text(expiredItem.productName ?? "Name wasn't found")
+                                    .font(.title2)
+                                Spacer()
+                                AsyncImage(url: URL( string: expiredItem.imageURL ?? "")){ image in image
+                                        .image?.resizable()
+                                        .scaledToFit()
+                                }
+                            }
+                        }
+                    }
+                    .onDelete{selectedIndexes in
+                        deleteIndexedItem(at: selectedIndexes, from:  expiredFoods, using: viewContext)
+                    }
+                } header: {
+                    HStack{
+                        Text("Most recently expired")
+                        Image(systemName: "arrowshape.up.fill")
+                    }
+                }
+            }
+        }
+        .toolbar{EditButton()}
+        // screen title
+        .navigationTitle("Expired Food")
+    }
+    
+    private func deleteIndexedItem(at indexes: IndexSet, from items: FetchedResults<UserItem>, using viewContext: NSManagedObjectContext){
+        for index in indexes{
+            viewContext.delete(items[index])
+        }
+        do {
+            // saves to core data.
+            try viewContext.save()
+        } catch {
+            print("Error deleting: \(error)")
+        }
+    }
+}
+
+
+
 
 struct NoContainer: View {
     @FetchRequest(
@@ -135,6 +207,8 @@ struct NoContainer: View {
                             }
                         }
                     }
+                    // modifies backround based onbool returned from isExpired func
+                    .listRowBackground(isExpired(date: item.expirationDate) ? Color.red.opacity(0.15): nil)
                 }
                 .onDelete{selectedIndexes in
                     deleteIndexedItem(at: selectedIndexes, from:  nilContainers, using: viewContext)
@@ -142,7 +216,10 @@ struct NoContainer: View {
             }
         }
         .toolbar{EditButton()}
+        // screen title
+        .navigationTitle("Not Specified")
     }
+    
     private func deleteIndexedItem(at indexes: IndexSet, from items: FetchedResults<UserItem>, using viewContext: NSManagedObjectContext){
         for index in indexes{
             viewContext.delete(items[index])
@@ -182,6 +259,8 @@ struct SpecificContainer: View {
                             }
                         }
                     }
+                    // modifies backround based onbool returned from isExpired func
+                    .listRowBackground(isExpired(date: item.expirationDate) ? Color.red.opacity(0.15) : nil)
                 }
                 .onDelete{selectedIndexes in
                     deleteIndexedItem(at: selectedIndexes, from: sortedItems, using: viewContext)
@@ -190,7 +269,10 @@ struct SpecificContainer: View {
             
         }
         .toolbar{EditButton()}
+        // screen title
+        .navigationTitle("\(container.containerName ?? "Container")")
     }
+    
     private func deleteIndexedItem(at indexes: IndexSet, from items: [UserItem], using viewContext: NSManagedObjectContext) {
         for index in indexes{
             viewContext.delete(items[index])
@@ -211,33 +293,49 @@ struct ItemClickThrough: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     var body: some View {
-        Text(clickedItem.brand ?? "Brand wasn't found")
-        Text(clickedItem.productCalories > 0 ? "Calories: \(clickedItem.productCalories) kcal":"No calorie data found")
-        Text(clickedItem.protein > 0 ? "Protein: \(clickedItem.protein, specifier: "%.1f") g": "No protein data found")
-        Text(clickedItem.carbs > 0 ? "Carbs: \(clickedItem.carbs, specifier: "%.1f") g": "No carb data found")
-        Text(clickedItem.fat > 0 ? "Fat: \(clickedItem.fat, specifier: "%.1f") g": "No fat data found")
-        Text(clickedItem.sugar > 0 ?"Sugar: \(clickedItem.sugar, specifier: "%.1f") g": "No sugar data found")
-        
-        
-        DatePicker("Current Expiration Date",
-                   selection: $savedExpirationDate,
-                   displayedComponents: [.date])
-        .onChange(of: savedExpirationDate) {
-            updateExpirationDate(currentProduct: clickedItem, newExpirationDate: savedExpirationDate, viewContext: viewContext)
-        }
-        
-        Button {
-            itemDeletionAlert.toggle()
-        } label: {
-            Text("Delete")
-                .foregroundStyle(Color.red)
-        }
-        .alert("Are you sure you want to delete \(clickedItem.productName ?? "None")?", isPresented: $itemDeletionAlert) {
-            Button("No", role: .cancel){}
-            Button("Yes", role:.destructive){
-                deleteItem(selectedItem: clickedItem, viewContext: viewContext)
-                dismiss()
+        VStack {
+            Text(clickedItem.brand ?? "Brand wasn't found")
+            Text(clickedItem.productCalories > 0 ? "Calories: \(clickedItem.productCalories) kcal":"No calorie data found")
+            Text(clickedItem.protein > 0 ? "Protein: \(clickedItem.protein, specifier: "%.1f") g": "No protein data found")
+            Text(clickedItem.carbs > 0 ? "Carbs: \(clickedItem.carbs, specifier: "%.1f") g": "No carb data found")
+            Text(clickedItem.fat > 0 ? "Fat: \(clickedItem.fat, specifier: "%.1f") g": "No fat data found")
+            Text(clickedItem.sugar > 0 ?"Sugar: \(clickedItem.sugar, specifier: "%.1f") g": "No sugar data found")
+            
+            
+            DatePicker("Current Expiration Date",
+                       selection: $savedExpirationDate,
+                       displayedComponents: [.date])
+            .onChange(of: savedExpirationDate) {
+                updateExpirationDate(currentProduct: clickedItem, newExpirationDate: savedExpirationDate, viewContext: viewContext)
+            }
+            
+            Button {
+                itemDeletionAlert.toggle()
+            } label: {
+                Text("Delete")
+                    .foregroundStyle(Color.red)
+            }
+            .alert("Are you sure you want to delete \(clickedItem.productName ?? "None")?", isPresented: $itemDeletionAlert) {
+                Button("No", role: .cancel){}
+                Button("Yes", role:.destructive){
+                    deleteItem(selectedItem: clickedItem, viewContext: viewContext)
+                    dismiss()
+                }
             }
         }
+        // screen title
+        .navigationTitle("\(clickedItem.productName ?? "Item")")
     }
+}
+
+// checks if item is expired based on date passed in. returns a bool.
+func isExpired (date: Date?) -> Bool {
+    // checks if date has something in it
+    if let date = date {
+        // checks if date is before the current date
+        if date <= Calendar.current.startOfDay(for: Date()) {
+            return true
+        }
+    }
+    return false
 }
