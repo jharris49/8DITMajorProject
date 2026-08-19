@@ -10,12 +10,15 @@ import CoreData
 struct AddContainerToolbar: ToolbarContent {
     @Binding var showAddContainerSheet: Bool
     var body: some ToolbarContent {
-        ToolbarItem(placement: .navigationBarTrailing){
+        ToolbarItem(placement: .topBarLeading){
             Button {
                 showAddContainerSheet = true
             } label: {
                 Image(systemName: "plus.capsule.fill")
             }
+        }
+        ToolbarItem(placement: .topBarTrailing){
+            EditButton()
         }
     }
 }
@@ -52,6 +55,9 @@ struct CatalogView: View{
                         Text(container.containerName ?? "Unnamed Container")
                     }
                 }
+                .onDelete{selectedIndexes in
+                    deleteContainer(indexes: selectedIndexes, containers: databaseContainers, viewContext: viewContext)
+                }
                 NavigationLink(destination: NoContainer()){
                     Text("Items with no specified container")
                 }
@@ -85,39 +91,67 @@ struct CatalogView: View{
             }
         }
     }
+    private func deleteContainer(indexes: IndexSet, containers: FetchedResults<Containers>, viewContext: NSManagedObjectContext ){
+        for index in indexes {
+            let selectedContainer = containers[index]
+            viewContext.delete(selectedContainer)
+        }
+        do {
+            // saves to core data.
+            try viewContext.save()
+        } catch {
+            print("Error deleting: \(error)")
+        }
+    }
 }
 
 struct NoContainer: View {
     @FetchRequest(
-            sortDescriptors: [
-                SortDescriptor(\.productName, order: .forward),
-                SortDescriptor(\.expirationDate, order: .forward)
-            ],
-            predicate: NSPredicate(format: "container == nil")
-        ) var nilContainers: FetchedResults<UserItem>
+        sortDescriptors: [
+            SortDescriptor(\.productName, order: .forward),
+            SortDescriptor(\.expirationDate, order: .forward)
+        ],
+        predicate: NSPredicate(format: "container == nil")
+    ) var nilContainers: FetchedResults<UserItem>
+    
+    @Environment(\.managedObjectContext) private var viewContext
     
     var body: some View {
         List{
             // checks if there are no items, if true then this message is displayed.
             if nilContainers.isEmpty{
                 Text("All items are in containers")
-            // else, each item is outputted.
+                // else, each item is outputted.
             } else {
                 ForEach(nilContainers) {item in
-                        VStack{
-                            NavigationLink(destination: ItemClickThrough(clickedItem: item, savedExpirationDate: item.expirationDate ?? Date())){
-                                Text(item.productName ?? "Name wasn't found")
-                                    .font(.title2)
-                                Spacer()
-                                AsyncImage(url: URL( string: item.imageURL ?? "")){ image in image
-                                        .image?.resizable()
-                                        .scaledToFit()
-                                }
+                    VStack{
+                        NavigationLink(destination: ItemClickThrough(clickedItem: item, savedExpirationDate: item.expirationDate ?? Date())){
+                            Text(item.productName ?? "Name wasn't found")
+                                .font(.title2)
+                            Spacer()
+                            AsyncImage(url: URL( string: item.imageURL ?? "")){ image in image
+                                    .image?.resizable()
+                                    .scaledToFit()
                             }
+                        }
                     }
                 }
+                .onDelete{selectedIndexes in
+                    deleteIndexedItem(at: selectedIndexes, from:  nilContainers, using: viewContext)
+                }
             }
-            
+        }
+        .toolbar{EditButton()}
+    }
+    private func deleteIndexedItem(at indexes: IndexSet, from items: FetchedResults<UserItem>, using viewContext: NSManagedObjectContext){
+        for index in indexes{
+            viewContext.delete(items[index])
+        }
+        do {
+            // saves to core data.
+            try viewContext.save()
+        } catch {
+            print("Error deleting: \(error)")
         }
     }
 }
@@ -155,11 +189,9 @@ struct SpecificContainer: View {
             }
             
         }
-        .toolbar{
-            EditButton()
-        }
+        .toolbar{EditButton()}
     }
-    func deleteIndexedItem(at indexes: IndexSet, from items: [UserItem], using viewContext: NSManagedObjectContext) {
+    private func deleteIndexedItem(at indexes: IndexSet, from items: [UserItem], using viewContext: NSManagedObjectContext) {
         for index in indexes{
             viewContext.delete(items[index])
         }
