@@ -9,9 +9,10 @@ import SwiftUI
 import CoreData
 
 struct ScanViewToolbar: ToolbarContent {
+    @Binding var showScanSheet: Bool
     var body: some ToolbarContent {
         ToolbarItem(placement: .principal) {
-            NavigationLink(destination: ManualProductView()){
+            NavigationLink(destination: ManualProductView(showScanSheet: $showScanSheet)){
                 Text("Can't find your product? Add it manually.")
                     .font(.footnote)
                     .foregroundStyle(.blue)
@@ -69,7 +70,7 @@ struct TabNavigator: View {
             NavigationStack {
                 ScanView(selectedTab: $selectedTab, stopScan: $stopScan, scanCounter: $scanCounter, productData: $productData)
                     .navigationBarTitleDisplayMode(.inline)
-                    .toolbar{ScanViewToolbar()}
+                    .toolbar{ScanViewToolbar(showScanSheet: $showScanSheet)}
                     .onDisappear{
                         stopScan = true
                     }
@@ -107,6 +108,7 @@ struct TabNavigator: View {
                                 DatePicker("Expiration Date",
                                            selection: $expDate,
                                            displayedComponents: [.date])
+                                .datePickerStyle(.wheel)
                                 // container picker. uses the containers returned from
                                 // the database fetchrequest and outputs them as
                                 // options for the user to choose to add their itme to
@@ -155,7 +157,7 @@ struct TabNavigator: View {
                         .presentationDetents([.medium])
                         .navigationTitle("Scanned Item")
                         .navigationDestination(isPresented: $showManualProductView) {
-                            ManualProductView()
+                            ManualProductView(showScanSheet: $showScanSheet)
                         }
                         .navigationBarTitleDisplayMode(.inline)
                     }
@@ -180,6 +182,7 @@ struct TabNavigator: View {
                 
                 Button("Get Started") {
                     isFirstTimeOpened = false
+                    requestNotificationsPermission()
                     // appends all of the defualt containers (as specified in the list)
                     // to the core data containers entity
                     for container in defaultContainers {
@@ -206,7 +209,11 @@ struct ManualProductView: View {
     @State var manualItemDate = Date()
     @State var showManualItemConfirmation = false
     @State var manualBrand = ""
+    
+    @Binding var showScanSheet: Bool
+    
     @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.dismiss) private var dismiss
     
     @FetchRequest(
         sortDescriptors: [
@@ -218,7 +225,6 @@ struct ManualProductView: View {
     @State private var selectedContainer: Containers?
     
     var body: some View {
-        NavigationStack{
             Form {
                 VStack{
                     HStack {
@@ -234,6 +240,7 @@ struct ManualProductView: View {
                     DatePicker("Expiration Date",
                                selection: $manualItemDate,
                                displayedComponents: [.date])
+                    .datePickerStyle(.wheel)
                     // container picker. uses the containers returned from
                     // the database fetchrequest and outputs them as
                     // options for the user to choose to add their itme to
@@ -268,12 +275,13 @@ struct ManualProductView: View {
                             pantryContainer: selectedContainer,
                             viewContext: viewContext
                         )
+                        dismiss()
+                        showScanSheet = false
                     }
                     .keyboardShortcut(.defaultAction)
                 }
             }
             .navigationTitle("Manual Product Entry")
-        }
     }
 }
 

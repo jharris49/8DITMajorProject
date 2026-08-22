@@ -305,6 +305,7 @@ struct ItemClickThrough: View {
             DatePicker("Current Expiration Date",
                        selection: $savedExpirationDate,
                        displayedComponents: [.date])
+            .datePickerStyle(.wheel)
             .onChange(of: savedExpirationDate) {
                 updateExpirationDate(currentProduct: clickedItem, newExpirationDate: savedExpirationDate, viewContext: viewContext)
             }

@@ -42,6 +42,12 @@ func addNewProduct(productName: String, brand: String? = nil, expirationDate: Da
     do {
         // saves to core data.
         try viewContext.save()
+        
+        let itemID = newProduct.objectID.uriRepresentation().absoluteString
+        
+        scheduleExpirationNotification(for: newProduct.productName, expirationDate: newProduct.expirationDate, daysBefore: 0, itemID: itemID)
+        scheduleExpirationNotification(for: newProduct.productName, expirationDate: newProduct.expirationDate, daysBefore: 0, itemID: itemID)
+        
     } catch {
         print("Error saving: \(error)")
     }
