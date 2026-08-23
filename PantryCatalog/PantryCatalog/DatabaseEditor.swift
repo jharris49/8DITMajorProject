@@ -26,6 +26,7 @@ func addNewProduct(productName: String, brand: String? = nil, expirationDate: Da
     // creates new user item object.
     let newProduct = UserItem(context: viewContext)
     // sets the attributes of the new user item object to the passed in variables (name, brand, etc).
+    newProduct.id = UUID()
     newProduct.productName = productName
     newProduct.brand = brand
     newProduct.expirationDate = expirationDate
@@ -43,10 +44,12 @@ func addNewProduct(productName: String, brand: String? = nil, expirationDate: Da
         // saves to core data.
         try viewContext.save()
         
-        let itemID = newProduct.objectID.uriRepresentation().absoluteString
+        scheduleExpirationNotification(for: newProduct.productName, expirationDate: newProduct.expirationDate, daysBefore: 0, itemID: newProduct.id, suffix: "day_of")
         
-        scheduleExpirationNotification(for: newProduct.productName, expirationDate: newProduct.expirationDate, daysBefore: 0, itemID: itemID)
-        scheduleExpirationNotification(for: newProduct.productName, expirationDate: newProduct.expirationDate, daysBefore: 0, itemID: itemID)
+        if let container = newProduct.container {
+            let daysForContainer = Int(container.notificationDay)
+            scheduleExpirationNotification(for: newProduct.productName, expirationDate: newProduct.expirationDate, daysBefore: daysForContainer, itemID: newProduct.id, suffix: "container_notification")
+        }
         
     } catch {
         print("Error saving: \(error)")
@@ -55,6 +58,10 @@ func addNewProduct(productName: String, brand: String? = nil, expirationDate: Da
 
 func updateExpirationDate(currentProduct: UserItem, newExpirationDate: Date, viewContext: NSManagedObjectContext){
     currentProduct.expirationDate = newExpirationDate
+    scheduleExpirationNotification(for: currentProduct.productName, expirationDate: currentProduct.expirationDate, daysBefore: 0, itemID: currentProduct.id, suffix: "day_of")
+    if let container = currentProduct.container {
+        scheduleExpirationNotification(for: currentProduct.productName, expirationDate: currentProduct.expirationDate, daysBefore: Int(container.notificationDay), itemID: currentProduct.id, suffix: "container_notification")
+    }
     do {
         // saves to core data.
         try viewContext.save()
@@ -64,6 +71,10 @@ func updateExpirationDate(currentProduct: UserItem, newExpirationDate: Date, vie
 }
 
 func deleteItem(selectedItem: UserItem, viewContext: NSManagedObjectContext) {
+    if let selectedItemId = selectedItem.id {
+        deleteNotification(for: selectedItemId, suffix: "day_of" )
+        deleteNotification(for: selectedItemId, suffix: "container_notification")
+    }
     viewContext.delete(selectedItem)
     do {
         // saves to core data.

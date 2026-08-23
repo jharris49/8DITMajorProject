@@ -104,6 +104,12 @@ struct CatalogView: View{
         for index in indexes {
             let selectedContainer = containers[index]
             viewContext.delete(selectedContainer)
+            
+            for item in selectedContainer.items as? Set<UserItem> ?? [] {
+                if let id = item.id {
+                    deleteNotification(for: id, suffix: "container_notification")
+                }
+            }
         }
         do {
             // saves to core data.
@@ -163,7 +169,13 @@ struct ExpiredFoodView: View {
     
     private func deleteIndexedItem(at indexes: IndexSet, from items: FetchedResults<UserItem>, using viewContext: NSManagedObjectContext){
         for index in indexes{
-            viewContext.delete(items[index])
+            let item = items[index]
+            viewContext.delete(item)
+            
+            if let id = item.id {
+                deleteNotification(for: id, suffix: "container_notification")
+                deleteNotification(for: id, suffix: "day_of")
+            }
         }
         do {
             // saves to core data.
@@ -222,7 +234,13 @@ struct NoContainer: View {
     
     private func deleteIndexedItem(at indexes: IndexSet, from items: FetchedResults<UserItem>, using viewContext: NSManagedObjectContext){
         for index in indexes{
-            viewContext.delete(items[index])
+            let item = items[index]
+            viewContext.delete(item)
+        
+            if let id = item.id {
+                deleteNotification(for: id, suffix: "container_notification")
+                deleteNotification(for: id, suffix: "day_of")
+            }
         }
         do {
             // saves to core data.
@@ -268,14 +286,28 @@ struct SpecificContainer: View {
             }
             
         }
-        .toolbar{EditButton()}
+        .toolbar{
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                NavigationLink(destination: ContainerSettingsView(container: container,)){
+                    Image(systemName: "gear")
+                }
+                EditButton()
+            }
+        }
         // screen title
         .navigationTitle("\(container.containerName ?? "Container")")
     }
     
     private func deleteIndexedItem(at indexes: IndexSet, from items: [UserItem], using viewContext: NSManagedObjectContext) {
         for index in indexes{
-            viewContext.delete(items[index])
+            let item = items[index]
+            viewContext.delete(item)
+            
+            if let id = item.id {
+                deleteNotification(for: id, suffix: "container_notification")
+                deleteNotification(for: id, suffix: "day_of")
+            }
+            
         }
         do {
             // saves to core data.
@@ -284,6 +316,36 @@ struct SpecificContainer: View {
             print("Error deleting: \(error)")
         }
     }
+}
+
+
+struct ContainerSettingsView: View {
+    @ObservedObject var container: Containers
+    @Environment(\.managedObjectContext) private var viewContext
+    
+    var body: some View {
+        Form {
+            Picker(selection: $container.notificationDay, label: Text("Notification 1")) {
+                ForEach(1..<31) { hour in
+                    Text("\(hour) days").tag(Int16(hour))
+                }
+            }
+            .onDisappear {
+                do {
+                    try viewContext.save()
+                } catch {
+                    print("Error saving: \(error)")
+                }
+                
+                if let items = container.items as? Set<UserItem> {
+                    for item in items {
+                        scheduleExpirationNotification(for: item.productName, expirationDate: item.expirationDate, daysBefore: Int(container.notificationDay), itemID: item.id, suffix: "container_notification")
+                    }
+                }
+            }
+        }
+    }
+    
 }
 
 struct ItemClickThrough: View {

@@ -19,21 +19,33 @@ func requestNotificationsPermission(){
     }
 }
 
-func scheduleExpirationNotification(for productName: String?, expirationDate: Date?, daysBefore: Int, itemID: String?) {
+func scheduleExpirationNotification(for productName: String?, expirationDate: Date?, daysBefore: Int, itemID: UUID?, suffix: String) {
+    print("Scheduling notification")
     if let productName = productName, let expirationDate = expirationDate, let itemID = itemID {
+        let notificationIdentifier = "\(itemID.uuidString)\(suffix)"
+        
         let content = UNMutableNotificationContent()
         content.title = "Expiring Item Reminder"
-        //content.body = getNotifcationMessage(for: productName, with: expirationDate)
-        content.body = "Your \(productName) is expiring today"
+        content.body = "Your \(productName) is expiring in \(abs(daysBefore)) days"
         content.sound = .default
         
-        var expirationDateComponents = Calendar.current.dateComponents([.year, .month, .day], from: expirationDate)
+        let notificationDay = -daysBefore
+        guard let targetNotificationDate = Calendar.current.date(byAdding: .day, value: notificationDay, to: expirationDate) else {print("Issue saving notification"); return }
+        
+        var expirationDateComponents = Calendar.current.dateComponents([.year, .month, .day], from: targetNotificationDate)
+        // sets time on the day that the notifications will send
         expirationDateComponents.hour = 9
         expirationDateComponents.minute = 0
         
         let trigger = UNCalendarNotificationTrigger(dateMatching: expirationDateComponents, repeats: false)
         
-        let request = UNNotificationRequest(identifier: itemID, content: content, trigger: trigger)
+        let request = UNNotificationRequest(identifier: notificationIdentifier, content: content, trigger: trigger)
         UNUserNotificationCenter.current().add(request)
     }
+}
+
+func deleteNotification(for itemID: UUID, suffix: String) {
+    UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["\(itemID.uuidString)\(suffix)"])
+    UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ["\(itemID.uuidString)\(suffix)"])
+    print("Notifications deleted")
 }
