@@ -98,13 +98,42 @@ struct TabNavigator: View {
                     NavigationStack {
                         Form {
                             if let item = productData {
-                                Text(item.product_name ?? "")
-                                // shows image through the use of an
-                                // external url
-                                AsyncImage(url: URL( string: item.image_front_url ?? "")){ image in image
-                                        .image?.resizable()
-                                        .scaledToFit()
-                                }
+                                Section("Details") {
+                                    Text(item.product_name ?? "")
+                                    // shows image through the use of an
+                                    // external url
+  
+                                        AsyncImage(url: URL( string: item.image_front_url ?? "")){ image in
+                                            if let image = image.image { image
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(maxHeight: 400)
+                                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                            } else if image.image == nil  {
+                                                ProgressView()
+                                                Text("No image found")
+                                            }
+                                        }
+                                        .frame(maxWidth: .infinity, alignment: .center)
+                                    
+                                    VStack {
+                                        Text("Nutritional Information")
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .padding(.bottom, 10)
+                                        Spacer()
+                                        AsyncImage(url: URL( string: item.image_nutrition_url ?? "")){ image in
+                                            if let image = image.image { image
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(maxHeight: 400)
+                                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                            } else if image.image == nil  {
+                                                ProgressView()
+                                                Text("No nutritional image found")
+                                            }
+                                        }
+                                        .frame(maxWidth: .infinity, alignment: .center)
+                                    }
                                 DatePicker("Expiration Date",
                                            selection: $expDate,
                                            displayedComponents: [.date])
@@ -121,8 +150,12 @@ struct TabNavigator: View {
                                             .tag(container as Containers?)
                                     }
                                 }
-                                Button("Save Product"){
-                                    showItemConfirmation = true
+                            }
+                                Section {
+                                    Button("Save Product"){
+                                        showItemConfirmation = true
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .center)
                                 }
                                 .alert("Are you sure you want to save this item?", isPresented: $showItemConfirmation){
                                     Button("No", role: .cancel){}
@@ -134,6 +167,7 @@ struct TabNavigator: View {
                                             imageURL: item.image_front_url ?? "",
                                             pantryContainer: selectedContainer,
                                             nutriments: item.nutriments ?? nil,
+                                            nutritionImageURL: item.image_nutrition_url ?? "",
                                             viewContext: viewContext
                                         )
                                         showScanSheet = false
@@ -225,7 +259,8 @@ struct ManualProductView: View {
     @State private var selectedContainer: Containers?
     
     var body: some View {
-            Form {
+        Form {
+            Section("Details") {
                 VStack{
                     HStack {
                         Text("Item Name:")
@@ -237,10 +272,19 @@ struct ManualProductView: View {
                         TextField("brand", text: $manualBrand)
                             .onChange(of: manualBrand) { _, _ in manualBrand = String(manualBrand.prefix(400))}
                     }
-                    DatePicker("Expiration Date",
-                               selection: $manualItemDate,
-                               displayedComponents: [.date])
-                    .datePickerStyle(.wheel)
+                    .padding(.bottom, 10)
+                }
+                VStack {
+                    Text("Expiration Date")
+                    Spacer()
+                        DatePicker("Expiration Date",
+                                   selection: $manualItemDate,
+                                   displayedComponents: [.date])
+                        .datePickerStyle(.wheel)
+                        .frame(height: 100)
+                        .clipped()
+                        .padding(.bottom, 10)
+                }
                     // container picker. uses the containers returned from
                     // the database fetchrequest and outputs them as
                     // options for the user to choose to add their itme to
@@ -253,7 +297,8 @@ struct ManualProductView: View {
                                 .tag(container as Containers?)
                         }
                     }
-                }
+            }
+            Section {
                 Button("Save Product"){
                     if newName.isEmpty {
                         showInvalidInput.toggle()
@@ -261,6 +306,8 @@ struct ManualProductView: View {
                         showManualItemConfirmation = true
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .center)
+            }
                 .alert("You entered a blank name, please ensure you enter a name for your product.", isPresented: $showInvalidInput) {
                     Button("Retry"){}
                         .keyboardShortcut(.defaultAction)

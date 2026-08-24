@@ -18,6 +18,7 @@ struct SpecificProduct: Decodable {
     let image_front_url: String?
     let quantity: String?
     let nutriments: Nutriments?
+    let image_nutrition_url: String?
 }
 
 struct Nutriments: Decodable {

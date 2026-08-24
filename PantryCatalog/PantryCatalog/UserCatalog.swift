@@ -355,21 +355,74 @@ struct ItemClickThrough: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     var body: some View {
-        VStack {
-            Text(clickedItem.brand ?? "Brand wasn't found")
-            Text(clickedItem.productCalories > 0 ? "Calories: \(clickedItem.productCalories) kcal":"No calorie data found")
-            Text(clickedItem.protein > 0 ? "Protein: \(clickedItem.protein, specifier: "%.1f") g": "No protein data found")
-            Text(clickedItem.carbs > 0 ? "Carbs: \(clickedItem.carbs, specifier: "%.1f") g": "No carb data found")
-            Text(clickedItem.fat > 0 ? "Fat: \(clickedItem.fat, specifier: "%.1f") g": "No fat data found")
-            Text(clickedItem.sugar > 0 ?"Sugar: \(clickedItem.sugar, specifier: "%.1f") g": "No sugar data found")
-            
-            
-            DatePicker("Current Expiration Date",
-                       selection: $savedExpirationDate,
-                       displayedComponents: [.date])
-            .datePickerStyle(.wheel)
-            .onChange(of: savedExpirationDate) {
-                updateExpirationDate(currentProduct: clickedItem, newExpirationDate: savedExpirationDate, viewContext: viewContext)
+        Form {
+            Section {
+                AsyncImage(url: URL(string: clickedItem.imageURL ?? "")){ image in
+                    if let image = image.image { image
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxHeight: 400)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                    } else if image.image == nil  {
+                        ProgressView()
+                        Text("No image found")
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                HStack {
+                    Text("Brand:")
+                    Text(clickedItem.brand ?? "Brand wasn't found")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            Section("Nutritional Information") {
+                HStack {
+                    Text("Calories:")
+                    Text(clickedItem.productCalories > 0 ? " \(clickedItem.productCalories) kcal":"No calorie data found")
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+                HStack {
+                    Text("Protein:")
+                    Text(clickedItem.protein > 0 ? "\(clickedItem.protein, specifier: "%.1f") g": "No protein data found")
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+                HStack {
+                    Text("Carbs:")
+                    Text(clickedItem.carbs > 0 ? "\(clickedItem.carbs, specifier: "%.1f") g": "No carb data found")
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+                HStack {
+                    Text("Fat:")
+                    Text(clickedItem.fat > 0 ? "\(clickedItem.fat, specifier: "%.1f") g": "No fat data found")
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+                HStack {
+                    Text("Sugar:")
+                    Text(clickedItem.sugar > 0 ?"\(clickedItem.sugar, specifier: "%.1f") g": "No sugar data found")
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+                Text("Image")
+                AsyncImage(url: URL(string: clickedItem.nutritionImageURL ?? "")){ image in
+                    if let image = image.image { image
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxHeight: 400)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                    } else if image.image == nil  {
+                        ProgressView()
+                        Text("No nutritional image found")
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+            }
+            Section("Current Information") {
+                DatePicker("Current Expiration Date",
+                           selection: $savedExpirationDate,
+                           displayedComponents: [.date])
+                .datePickerStyle(.wheel)
+                .onChange(of: savedExpirationDate) {
+                    updateExpirationDate(currentProduct: clickedItem, newExpirationDate: savedExpirationDate, viewContext: viewContext)
+                }
             }
             
             Button {
@@ -377,6 +430,7 @@ struct ItemClickThrough: View {
             } label: {
                 Text("Delete")
                     .foregroundStyle(Color.red)
+                    .frame(maxWidth: .infinity, alignment: .center)
             }
             .alert("Are you sure you want to delete \(clickedItem.productName ?? "None")?", isPresented: $itemDeletionAlert) {
                 Button("No", role: .cancel){}
@@ -386,6 +440,7 @@ struct ItemClickThrough: View {
                 }
             }
         }
+        
         // screen title
         .navigationTitle("\(clickedItem.productName ?? "Item")")
     }

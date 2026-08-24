@@ -22,7 +22,7 @@ func addContainer(containerName: String, viewContext: NSManagedObjectContext){
 }
 
 func addNewProduct(productName: String, brand: String? = nil, expirationDate: Date,
-                   imageURL: String? = nil, pantryContainer: Containers?, nutriments: Nutriments? = nil, viewContext: NSManagedObjectContext) {
+                   imageURL: String? = nil, pantryContainer: Containers?, nutriments: Nutriments? = nil, nutritionImageURL: String? = nil, viewContext: NSManagedObjectContext) {
     // creates new user item object.
     let newProduct = UserItem(context: viewContext)
     // sets the attributes of the new user item object to the passed in variables (name, brand, etc).
@@ -31,6 +31,7 @@ func addNewProduct(productName: String, brand: String? = nil, expirationDate: Da
     newProduct.brand = brand
     newProduct.expirationDate = expirationDate
     newProduct.imageURL = imageURL
+    newProduct.nutritionImageURL = nutritionImageURL
     newProduct.container = pantryContainer
     
     if let nutriments = nutriments {

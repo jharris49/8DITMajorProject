@@ -16,6 +16,7 @@ struct PantryCatalogApp: App {
         WindowGroup {
             TabNavigator()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                .preferredColorScheme(.light)
         }
     }
 }
