@@ -89,6 +89,7 @@ struct CatalogView: View{
                         Button("Add container"){
                             if newContainerName.isEmpty {
                                 invalidContainerName.toggle()
+                                return
                             }
                             addContainer(containerName: newContainerName, viewContext: viewContext)
                             showAddContainerSheet = false
@@ -103,6 +104,9 @@ struct CatalogView: View{
                     }
                     // sheet size medium.
                     .presentationDetents([.height(200)])
+                    .onAppear {
+                        newContainerName = ""
+                    }
                 }
             }
         }
@@ -263,6 +267,8 @@ struct SpecificContainer: View {
     @ObservedObject var container: Containers
     @Environment(\.managedObjectContext) private var viewContext
     @State var showNotificationsSettings = false
+    @State var searchText = ""
+    
     var body: some View {
         // gets all items from a container and converts them to type UserItem object.
         let items = container.items?.allObjects as? [UserItem] ?? []
@@ -445,8 +451,13 @@ struct ItemClickThrough: View {
                            displayedComponents: [.date])
                 .datePickerStyle(.wheel)
             }
-            .onDisappear {
-                updateExpirationDate(currentProduct: clickedItem, newExpirationDate: savedExpirationDate, viewContext: viewContext)
+            .onChange(of: savedExpirationDate) {_, newDate in
+                    updateExpirationDate(currentProduct: clickedItem, newExpirationDate: newDate, viewContext: viewContext)
+                }
+            .onAppear {
+                if let freshDate = clickedItem.expirationDate {
+                    savedExpirationDate = freshDate
+                }
             }
             
             Button {
@@ -464,7 +475,9 @@ struct ItemClickThrough: View {
                 }
             }
         }
-        
+        .onDisappear {
+            updateExpirationDate(currentProduct: clickedItem, newExpirationDate: savedExpirationDate, viewContext: viewContext)
+        }
         // screen title
         .navigationTitle("\(clickedItem.productName ?? "Item")")
     }
