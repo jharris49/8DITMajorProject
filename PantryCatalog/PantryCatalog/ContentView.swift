@@ -11,6 +11,12 @@ import CoreData
 struct ScanViewToolbar: ToolbarContent {
     @Binding var showScanSheet: Bool
     var body: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading){
+            Image("KeepFreshIcon")
+                .resizable()
+                .scaledToFit()
+        }
+        .sharedBackgroundVisibility(Visibility.hidden)
         ToolbarItem(placement: .principal) {
             NavigationLink(destination: ManualProductView(showScanSheet: $showScanSheet)){
                 Text("Can't find your product? Add it manually.")
@@ -103,15 +109,16 @@ struct TabNavigator: View {
                                     // shows image through the use of an
                                     // external url
   
-                                        AsyncImage(url: URL( string: item.image_front_url ?? "")){ image in
+                                    AsyncImage(url: URL(string: (item.image_front_url?.isEmpty ?? true) ? "invalid_url" : item.image_front_url!)){ image in
                                             if let image = image.image { image
                                                 .resizable()
                                                 .scaledToFit()
                                                 .frame(maxHeight: 400)
                                                 .clipShape(RoundedRectangle(cornerRadius: 10))
-                                            } else if image.image == nil  {
-                                                ProgressView()
+                                            } else if image.error != nil  {
                                                 Text("No image found")
+                                            } else {
+                                                ProgressView()
                                             }
                                         }
                                         .frame(maxWidth: .infinity, alignment: .center)
@@ -121,15 +128,16 @@ struct TabNavigator: View {
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                             .padding(.bottom, 10)
                                         Spacer()
-                                        AsyncImage(url: URL( string: item.image_nutrition_url ?? "")){ image in
+                                        AsyncImage(url: URL(string: (item.image_nutrition_url?.isEmpty ?? true) ? "invalid_url" : item.image_nutrition_url!)){ image in
                                             if let image = image.image { image
                                                 .resizable()
                                                 .scaledToFit()
                                                 .frame(maxHeight: 400)
                                                 .clipShape(RoundedRectangle(cornerRadius: 10))
-                                            } else if image.image == nil  {
+                                            } else if image.error != nil  {
+                                                Text("No image found")
+                                            } else {
                                                 ProgressView()
-                                                Text("No nutritional image found")
                                             }
                                         }
                                         .frame(maxWidth: .infinity, alignment: .center)
@@ -210,7 +218,7 @@ struct TabNavigator: View {
         // referring back to the @appstorage var
         if isFirstTimeOpened {
             Form {
-                Text("Welcome to (placeholder name)!")
+                Text("Welcome to KeepFresh!")
                     .font(.title)
                     .bold()
                 
@@ -226,8 +234,6 @@ struct TabNavigator: View {
                 .frame(maxWidth: .infinity)
                 .padding()
                 .background(Color.blue)
-                .foregroundColor(.white)
-                .cornerRadius(10)
             }
             .padding()
         // normal screen if not the first time opening app.

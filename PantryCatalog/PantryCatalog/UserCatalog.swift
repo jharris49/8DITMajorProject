@@ -11,6 +11,12 @@ struct AddContainerToolbar: ToolbarContent {
     @Binding var showAddContainerSheet: Bool
     var body: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading){
+            Image("KeepFreshIcon")
+                .resizable()
+                .scaledToFit()
+        }
+        .sharedBackgroundVisibility(Visibility.hidden)
+        ToolbarItem(placement: .topBarLeading){
             Button {
                 showAddContainerSheet = true
             } label: {
@@ -77,7 +83,7 @@ struct CatalogView: View{
                     Form {
                         HStack {
                             Text("Container Name:")
-                            TextField("Enter the name of your container:", text: $newContainerName, prompt: Text("        Pantry etc"))
+                            TextField("Enter the name of your container:", text: $newContainerName, prompt: Text("Pantry etc"))
                                 .onChange(of: newContainerName) { _, _ in newContainerName = String(newContainerName.prefix(400))}
                         }
                         Button("Add container"){
@@ -87,6 +93,7 @@ struct CatalogView: View{
                             addContainer(containerName: newContainerName, viewContext: viewContext)
                             showAddContainerSheet = false
                         }
+                        .frame(maxWidth: .infinity, alignment: .center)
                         .alert("You entered an empty container, please make sure your container has a name.", isPresented: $invalidContainerName){
                             Button("Retry"){}
                                 .keyboardShortcut(.defaultAction)
@@ -95,7 +102,7 @@ struct CatalogView: View{
                         .navigationTitle("New Container")
                     }
                     // sheet size medium.
-                    .presentationDetents([.medium])
+                    .presentationDetents([.height(200)])
                 }
             }
         }
@@ -255,6 +262,7 @@ struct NoContainer: View {
 struct SpecificContainer: View {
     @ObservedObject var container: Containers
     @Environment(\.managedObjectContext) private var viewContext
+    @State var showNotificationsSettings = false
     var body: some View {
         // gets all items from a container and converts them to type UserItem object.
         let items = container.items?.allObjects as? [UserItem] ?? []
@@ -288,12 +296,18 @@ struct SpecificContainer: View {
         }
         .toolbar{
             ToolbarItemGroup(placement: .navigationBarTrailing) {
-                NavigationLink(destination: ContainerSettingsView(container: container,)){
-                    Image(systemName: "gear")
+                Button{
+                    showNotificationsSettings.toggle()
+                } label: {
+                    Image(systemName: "bell.fill")
                 }
                 EditButton()
             }
         }
+        .sheet(isPresented: $showNotificationsSettings, content: {
+            ContainerSettingsView(container: container)
+                .presentationDetents([.height(200)])
+        })
         // screen title
         .navigationTitle("\(container.containerName ?? "Container")")
     }
@@ -324,10 +338,13 @@ struct ContainerSettingsView: View {
     @Environment(\.managedObjectContext) private var viewContext
     
     var body: some View {
-        Form {
-            Picker(selection: $container.notificationDay, label: Text("Notification 1")) {
-                ForEach(1..<31) { hour in
-                    Text("\(hour) days").tag(Int16(hour))
+        NavigationStack {
+            Form {
+                Section {
+                Picker(selection: $container.notificationDay, label: Text("Days before item expiration")) {
+                    ForEach(1..<31) { hour in
+                        Text("\(hour) days").tag(Int16(hour))
+                    }
                 }
             }
             .onDisappear {
@@ -343,7 +360,9 @@ struct ContainerSettingsView: View {
                     }
                 }
             }
+            .navigationTitle("Container Notifications")
         }
+    }
     }
     
 }
@@ -357,15 +376,16 @@ struct ItemClickThrough: View {
     var body: some View {
         Form {
             Section {
-                AsyncImage(url: URL(string: clickedItem.imageURL ?? "")){ image in
+                AsyncImage(url: URL(string: (clickedItem.imageURL?.isEmpty ?? true) ? "invalid_url" : clickedItem.imageURL!)){ image in
                     if let image = image.image { image
                         .resizable()
                         .scaledToFit()
                         .frame(maxHeight: 400)
                         .clipShape(RoundedRectangle(cornerRadius: 10))
-                    } else if image.image == nil  {
-                        ProgressView()
+                    } else if image.error != nil  {
                         Text("No image found")
+                    } else {
+                        ProgressView()
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
@@ -401,28 +421,32 @@ struct ItemClickThrough: View {
                     Text(clickedItem.sugar > 0 ?"\(clickedItem.sugar, specifier: "%.1f") g": "No sugar data found")
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
-                Text("Image")
-                AsyncImage(url: URL(string: clickedItem.nutritionImageURL ?? "")){ image in
-                    if let image = image.image { image
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxHeight: 400)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                    } else if image.image == nil  {
-                        ProgressView()
-                        Text("No nutritional image found")
+                VStack {
+                    Text("Image")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    AsyncImage(url: URL(string: (clickedItem.nutritionImageURL?.isEmpty ?? true) ? "invalid_url" : clickedItem.nutritionImageURL!)){ image in
+                        if let image = image.image { image
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxHeight: 400)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        } else if image.error != nil  {
+                            Text("No image found")
+                        } else {
+                            ProgressView()
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .center)
                 }
-                .frame(maxWidth: .infinity, alignment: .center)
             }
             Section("Current Information") {
                 DatePicker("Current Expiration Date",
                            selection: $savedExpirationDate,
                            displayedComponents: [.date])
                 .datePickerStyle(.wheel)
-                .onChange(of: savedExpirationDate) {
-                    updateExpirationDate(currentProduct: clickedItem, newExpirationDate: savedExpirationDate, viewContext: viewContext)
-                }
+            }
+            .onDisappear {
+                updateExpirationDate(currentProduct: clickedItem, newExpirationDate: savedExpirationDate, viewContext: viewContext)
             }
             
             Button {
