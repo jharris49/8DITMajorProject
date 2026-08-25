@@ -217,25 +217,50 @@ struct TabNavigator: View {
         // checks if it is the apps first time being opened,
         // referring back to the @appstorage var
         if isFirstTimeOpened {
-            Form {
-                Text("Welcome to KeepFresh!")
-                    .font(.title)
-                    .bold()
-                
-                Button("Get Started") {
-                    isFirstTimeOpened = false
-                    requestNotificationsPermission()
-                    // appends all of the defualt containers (as specified in the list)
-                    // to the core data containers entity
-                    for container in defaultContainers {
-                        addContainer(containerName: container, viewContext: viewContext)
+            NavigationStack {
+                Form {
+                    VStack {
+                        Text("Welcome to KeepFresh!")
+                            .font(.title)
+                            .bold()
+                            .padding(.bottom, 15)
+                        Text("KeepFresh is a interactive product catalog app that keeps track of what you have and when it expires. It lets you know when an item expires, and keeps a running record of what food you have in your house so you don;t end up wasting money buying something you didn't know you already had and or expired.")
+                            .font(.subheadline)
+                    }
+                    DisclosureGroup("Our story") {
+                        Text("In our house we often forget what food we have, and especially when it expires, this leading multiple purchases of the same item again and again, creating a stockpile of the same item in our cupboards. Even worse, many products hide in the back of our pantries, and often don't get noticed until it is too late and they have expired, this, alongside duplicate items, means that there is often food thrown out that would have been perfectly fine a few days before. Hence informing the idea of KeepFresh.")
+                            .font(.subheadline)
+                    }
+                    DisclosureGroup("How KeepFresh works") {
+                        Text("Once you open the app, you will see a camera on the home screen. You can use this camera to scan the barcode on the back of the food you just bought, or, you can enter it manually. The app then prompts you to enter an expiration date for your item and then save it. Once you save it, the app has a notification scheduled on the morning of the item expiring as well as one that occurs based on the container (eg, fridge or pantry) you put the item in. And thats it, KeepFresh will let you know when an item is expired, and put it into a designated area on the app so you can see the items you need to throw out.")
+                            .font(.subheadline)
+                    }
+                    DisclosureGroup("What is a container?") {
+                        Text("A container is just the umbrella term that is used for areas where you store food, such as your pantry, fridge, freezer, garage freezer, etc. You can create your own containers or just use the ones that KeepFresh provides.")
+                            .font(.subheadline)
+                    }
+                    Section {
+                        Button("Get Started") {
+                            isFirstTimeOpened = false
+                            requestNotificationsPermission()
+                            // appends all of the defualt containers (as specified in the list)
+                            // to the core data containers entity
+                            for container in defaultContainers {
+                                addContainer(containerName: container, viewContext: viewContext)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
                     }
                 }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.blue)
+                .toolbar{
+                    ToolbarItem(placement: .topBarLeading){
+                        Image("KeepFreshIcon")
+                            .resizable()
+                            .scaledToFit()
+                    }
+                    .sharedBackgroundVisibility(Visibility.hidden)
+                }
             }
-            .padding()
         // normal screen if not the first time opening app.
         } else {
             homeViewTabs
